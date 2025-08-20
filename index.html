@@ -3,21 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Date Invite</title>
+    <title>DateNight Invites</title>
     <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
-        const App = () => {
-            const [view, setView] = useState('login');
+        const DateInviteWebsite = () => {
+            const [currentView, setCurrentView] = useState('login');
+            const [inviteData, setInviteData] = useState({});
+            const [responseData, setResponseData] = useState({});
             const [generatedLink, setGeneratedLink] = useState('');
+            const [isRecipientView, setIsRecipientView] = useState(false);
+            const [inviteId, setInviteId] = useState('');
+            const [showAnimation, setShowAnimation] = useState(false);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [emailStatus, setEmailStatus] = useState('');
+
+            // CHANGE THIS PASSWORD
+            const SITE_PASSWORD = "datenight2025";
+
+            // EmailJS Configuration - Replace with your values
+            const EMAILJS_CONFIG = {
+                serviceId: "YOUR_SERVICE_ID",
+                templateId: "YOUR_TEMPLATE_ID", 
+                publicKey: "YOUR_PUBLIC_KEY"
+            };
+
+            // Initialize EmailJS
+            useEffect(() => {
+                if (typeof emailjs !== 'undefined' && EMAILJS_CONFIG.publicKey !== "YOUR_PUBLIC_KEY") {
+                    emailjs.init(EMAILJS_CONFIG.publicKey);
+                }
+            }, []);
+
+            // Check URL for invite links
+            useEffect(() => {
+                const hash = window.location.hash;
+                const inviteMatch = hash.match(/#\/invite\/([a-z0-9]+)/);
+                
+                if (inviteMatch) {
+                    const id = inviteMatch[1];
+                    setInviteId(id);
+                    setIsRecipientView(true);
+                    setIsAuthenticated(true);
+                    
+                    const storedData = localStorage.getItem(`invite_${id}`);
+                    if (storedData) {
+                        setInviteData(JSON.parse(storedData));
+                    } else {
+                        // Fallback sample data
+                        const sampleInviteData = {
+                            hostName: "Alex",
+                            dateType: "romantic", 
+                            title: "A Magical Evening Together",
+                            description: "Join me for a beautiful evening filled with great conversation, delicious food, and wonderful company.",
+                            location: "Downtown Rooftop Restaurant",
+                            attireOptions: ["Casual Chic", "Semi-Formal", "Dressy Casual"],
+                            foodOptions: ["Italian Cuisine", "Sushi & Asian", "Classic American"],
+                            timeOptions: ["6:00 PM", "7:30 PM", "8:00 PM"]
+                        };
+                        setInviteData(sampleInviteData);
+                    }
+                    
+                    setShowAnimation(true);
+                    setCurrentView('animation');
+                    
+                    setTimeout(() => {
+                        setShowAnimation(false);
+                        setCurrentView('respond');
+                    }, 4000);
+                }
+            }, []);
 
             const dateTypes = [
                 { id: 'romantic', name: 'Romantic Evening', icon: '💕' },
@@ -28,12 +95,56 @@
                 { id: 'foodie', name: 'Culinary Adventure', icon: '🍷' }
             ];
 
-            const LoginScreen = () => {
+            const sendEmailNotification = async (responses, inviteData) => {
+                if (typeof emailjs === 'undefined' || EMAILJS_CONFIG.publicKey === "YOUR_PUBLIC_KEY") {
+                    console.log('EmailJS not configured - would send:', responses);
+                    setEmailStatus('Email not configured (check console for details)');
+                    return false;
+                }
+
+                try {
+                    setEmailStatus('Sending...');
+                    
+                    const emailData = {
+                        to_email: "YOUR_EMAIL@example.com", // REPLACE WITH YOUR EMAIL
+                        invite_title: inviteData.title,
+                        host_name: inviteData.hostName,
+                        will_join: responses.willJoin === 'yes' ? 'YES - They want to go!' : 'NO - They cannot make it',
+                        attire_choice: responses.attire || 'N/A',
+                        food_choice: responses.food || 'N/A',
+                        time_choice: responses.time || 'N/A',
+                        personal_note: responses.note || 'No note provided',
+                        response_date: new Date().toLocaleString()
+                    };
+
+                    await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, emailData);
+                    setEmailStatus('Response sent successfully!');
+                    return true;
+                } catch (error) {
+                    console.error('EmailJS Error:', error);
+                    setEmailStatus('Email send failed, but response recorded');
+                    return false;
+                }
+            };
+
+            const LoginView = () => {
                 const [password, setPassword] = useState('');
+                const [showError, setShowError] = useState(false);
 
                 const handleLogin = () => {
-                    if (password === 'datenight2025') {
-                        setView('create');
+                    if (password === SITE_PASSWORD) {
+                        setIsAuthenticated(true);
+                        setCurrentView('create');
+                        setShowError(false);
+                    } else {
+                        setShowError(true);
+                        setPassword('');
+                    }
+                };
+
+                const handleKeyPress = (e) => {
+                    if (e.key === 'Enter') {
+                        handleLogin();
                     }
                 };
 
@@ -44,35 +155,39 @@
                                 <div className="text-center mb-8">
                                     <div className="text-6xl mb-4">🔒</div>
                                     <h1 className="text-3xl font-bold text-gray-800 mb-2">Private Access</h1>
-                                    <p className="text-gray-600">Enter password to create invites</p>
+                                    <p className="text-gray-600">Enter password to create date invites</p>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <input
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                                        placeholder="datenight2025"
-                                        autoFocus
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                            placeholder="Enter access password"
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    {showError && (
+                                        <div className="text-red-600 text-sm text-center">
+                                            Incorrect password. Please try again.
+                                        </div>
+                                    )}
 
                                     <button
                                         onClick={handleLogin}
-                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700"
+                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all"
                                     >
                                         Access Site
                                     </button>
                                 </div>
 
-                                <div className="mt-4 text-center">
-                                    <button
-                                        onClick={() => setView('animation')}
-                                        className="text-pink-600 text-sm underline"
-                                    >
-                                        Test animation
-                                    </button>
+                                <div className="mt-6 text-center text-sm text-gray-500">
+                                    Have an invite link? It will work directly without login.
                                 </div>
                             </div>
                         </div>
@@ -80,212 +195,9 @@
                 );
             };
 
-            const CreateInviteForm = () => {
-                const [formData, setFormData] = useState({
-                    hostName: '',
-                    dateType: '',
-                    title: '',
-                    description: '',
-                    location: '',
-                    attireOptions: ['', '', ''],
-                    foodOptions: ['', '', ''],
-                    timeOptions: ['', '', '']
-                });
+            const AnimationView = () => {
+                const selectedDateType = dateTypes.find(type => type.id === inviteData.dateType);
 
-                const updateFormData = (field, value) => {
-                    setFormData(prev => ({ ...prev, [field]: value }));
-                };
-
-                const updateArrayField = (field, index, value) => {
-                    const newArray = [...formData[field]];
-                    newArray[index] = value;
-                    setFormData(prev => ({ ...prev, [field]: newArray }));
-                };
-
-                const handleCreateInvite = () => {
-                    const inviteId = Math.random().toString(36).substr(2, 9);
-                    const link = `https://lowspeedburt.github.io/invites-test/#/invite/${inviteId}`;
-                    setGeneratedLink(link);
-                    setView('link');
-                };
-
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6">
-                        <div className="max-w-3xl mx-auto">
-                            <div className="text-center mb-8">
-                                <h1 className="text-4xl font-bold text-gray-800 mb-2">DateNight Invites</h1>
-                                <p className="text-gray-600 text-lg">Create the perfect date invitation</p>
-                            </div>
-
-                            <div className="bg-white rounded-2xl shadow-xl p-8 border border-pink-100">
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
-                                        <input
-                                            type="text"
-                                            value={formData.hostName}
-                                            onChange={(e) => updateFormData('hostName', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                                            placeholder="Enter your name"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Date Type</label>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {dateTypes.map(type => (
-                                                <div
-                                                    key={type.id}
-                                                    onClick={() => updateFormData('dateType', type.id)}
-                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                                                        formData.dateType === type.id
-                                                            ? 'border-pink-500 bg-pink-50'
-                                                            : 'border-gray-200 hover:border-pink-300'
-                                                    }`}
-                                                >
-                                                    <div className="text-2xl mb-1">{type.icon}</div>
-                                                    <div className="font-medium text-sm">{type.name}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Date Title</label>
-                                        <input
-                                            type="text"
-                                            value={formData.title}
-                                            onChange={(e) => updateFormData('title', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                                            placeholder="Give your date a special title"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                                        <textarea
-                                            value={formData.description}
-                                            onChange={(e) => updateFormData('description', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 h-24"
-                                            placeholder="Describe what you have planned..."
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                                        <input
-                                            type="text"
-                                            value={formData.location}
-                                            onChange={(e) => updateFormData('location', e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-                                            placeholder="Where will this date take place?"
-                                        />
-                                    </div>
-
-                                    <div className="grid md:grid-cols-3 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Attire Options</label>
-                                            {[0, 1, 2].map(i => (
-                                                <input
-                                                    key={i}
-                                                    type="text"
-                                                    value={formData.attireOptions[i]}
-                                                    onChange={(e) => updateArrayField('attireOptions', i, e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 text-sm"
-                                                    placeholder={`Option ${i + 1}`}
-                                                />
-                                            ))}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Food Options</label>
-                                            {[0, 1, 2].map(i => (
-                                                <input
-                                                    key={i}
-                                                    type="text"
-                                                    value={formData.foodOptions[i]}
-                                                    onChange={(e) => updateArrayField('foodOptions', i, e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 text-sm"
-                                                    placeholder={`Option ${i + 1}`}
-                                                />
-                                            ))}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Time Options</label>
-                                            {[0, 1, 2].map(i => (
-                                                <input
-                                                    key={i}
-                                                    type="text"
-                                                    value={formData.timeOptions[i]}
-                                                    onChange={(e) => updateArrayField('timeOptions', i, e.target.value)}
-                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 text-sm"
-                                                    placeholder={`Option ${i + 1}`}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={handleCreateInvite}
-                                        disabled={!formData.hostName || !formData.dateType || !formData.title}
-                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Create Date Invite
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 text-center">
-                                <button
-                                    onClick={() => setView('login')}
-                                    className="text-pink-600 text-sm underline"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const LinkGeneratedView = () => {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center">
-                        <div className="max-w-2xl mx-auto text-center">
-                            <div className="bg-white rounded-2xl shadow-xl p-8 border border-pink-100">
-                                <div className="mb-6">
-                                    <div className="text-6xl mb-4">✨</div>
-                                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Your Invite is Ready!</h2>
-                                    <p className="text-gray-600">Share this special link with your date</p>
-                                </div>
-
-                                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                                    <code className="text-pink-600 font-mono text-sm break-all">{generatedLink}</code>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={() => setView('animation')}
-                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700"
-                                    >
-                                        Preview Animation
-                                    </button>
-                                    
-                                    <button
-                                        onClick={() => setView('create')}
-                                        className="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300"
-                                    >
-                                        Create Another Invite
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const EnvelopeAnimation = () => {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center relative overflow-hidden">
                         <style>{`
@@ -322,6 +234,7 @@
                             }
                         `}</style>
                         
+                        {/* Sparkles */}
                         <div className="absolute inset-0 pointer-events-none">
                             {[...Array(8)].map((_, i) => (
                                 <div
@@ -340,6 +253,7 @@
                         </div>
 
                         <div className="relative">
+                            {/* Envelope */}
                             <div className="relative mb-8 floating" style={{ animationDelay: '0.5s' }}>
                                 <div className="w-80 h-56 bg-gradient-to-b from-pink-100 to-pink-200 rounded-lg shadow-2xl border border-pink-300 relative">
                                     <div 
@@ -353,44 +267,516 @@
                                 </div>
                             </div>
 
+                            {/* Invitation Card */}
                             <div className="invite-card absolute top-0 left-1/2 transform -translate-x-1/2 opacity-0">
                                 <div className="w-72 bg-white rounded-2xl shadow-2xl border border-pink-200 overflow-hidden">
                                     <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 text-center">
-                                        <div className="text-3xl mb-2">💕</div>
-                                        <h2 className="text-lg font-bold">A Magical Evening Together</h2>
-                                        <p className="text-pink-100 text-sm">From Alex</p>
+                                        <div className="text-3xl mb-2">{selectedDateType?.icon}</div>
+                                        <h2 className="text-lg font-bold">{inviteData.title}</h2>
+                                        <p className="text-pink-100 text-sm">From {inviteData.hostName}</p>
                                     </div>
                                     <div className="p-4 text-center">
                                         <p className="text-gray-700 text-sm mb-3">You have received a special date invitation!</p>
+                                        <div className="flex items-center justify-center gap-2 text-pink-600 text-sm">
+                                            <span>Tap anywhere to open</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-                            <button
-                                onClick={() => setView('login')}
-                                className="bg-white text-pink-600 py-2 px-4 rounded-lg shadow-lg hover:bg-gray-50"
-                            >
-                                Back to Login
-                            </button>
+                        <div 
+                            className="absolute inset-0 cursor-pointer z-20"
+                            onClick={() => {
+                                setShowAnimation(false);
+                                setCurrentView('respond');
+                            }}
+                        />
+                    </div>
+                );
+            };
+
+            const CreateInviteForm = () => {
+                const [formData, setFormData] = useState({
+                    hostName: '',
+                    dateType: '',
+                    title: '',
+                    description: '',
+                    location: '',
+                    attireOptions: ['', '', ''],
+                    foodOptions: ['', '', ''],
+                    timeOptions: ['', '', '']
+                });
+
+                const updateFormData = (field, value) => {
+                    setFormData(prev => ({ ...prev, [field]: value }));
+                };
+
+                const updateArrayField = (field, index, value) => {
+                    const newArray = [...formData[field]];
+                    newArray[index] = value;
+                    setFormData(prev => ({ ...prev, [field]: newArray }));
+                };
+
+                const handleCreateInvite = () => {
+                    const inviteIdValue = Math.random().toString(36).substr(2, 9);
+                    const link = `https://lowspeedburt.github.io/invites-test/#/invite/${inviteIdValue}`;
+                    setInviteData(formData);
+                    setGeneratedLink(link);
+                    setCurrentView('link');
+                    localStorage.setItem(`invite_${inviteIdValue}`, JSON.stringify(formData));
+                };
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6">
+                        <div className="max-w-3xl mx-auto">
+                            <div className="text-center mb-8">
+                                <h1 className="text-4xl font-bold text-gray-800 mb-2">DateNight Invites</h1>
+                                <p className="text-gray-600 text-lg">Create the perfect date invitation</p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-xl p-8 border border-pink-100">
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
+                                        <input
+                                            type="text"
+                                            value={formData.hostName}
+                                            onChange={(e) => updateFormData('hostName', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                            placeholder="Enter your name"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">Date Type</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {dateTypes.map(type => (
+                                                <div
+                                                    key={type.id}
+                                                    onClick={() => updateFormData('dateType', type.id)}
+                                                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                                        formData.dateType === type.id
+                                                            ? 'border-pink-500 bg-pink-50'
+                                                            : 'border-gray-200 hover:border-pink-300'
+                                                    }`}
+                                                >
+                                                    <div className="text-2xl mb-1">{type.icon}</div>
+                                                    <div className="font-medium text-sm">{type.name}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Date Title</label>
+                                        <input
+                                            type="text"
+                                            value={formData.title}
+                                            onChange={(e) => updateFormData('title', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                            placeholder="Give your date a special title"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={(e) => updateFormData('description', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent h-24"
+                                            placeholder="Describe what you have planned..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                                        <input
+                                            type="text"
+                                            value={formData.location}
+                                            onChange={(e) => updateFormData('location', e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                            placeholder="Where will this date take place?"
+                                        />
+                                    </div>
+
+                                    <div className="grid md:grid-cols-3 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Attire Options</label>
+                                            {[0, 1, 2].map(i => (
+                                                <input
+                                                    key={i}
+                                                    type="text"
+                                                    value={formData.attireOptions[i]}
+                                                    onChange={(e) => updateArrayField('attireOptions', i, e.target.value)}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                                                    placeholder={`Option ${i + 1}`}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Food Options</label>
+                                            {[0, 1, 2].map(i => (
+                                                <input
+                                                    key={i}
+                                                    type="text"
+                                                    value={formData.foodOptions[i]}
+                                                    onChange={(e) => updateArrayField('foodOptions', i, e.target.value)}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                                                    placeholder={`Option ${i + 1}`}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-3">Time Options</label>
+                                            {[0, 1, 2].map(i => (
+                                                <input
+                                                    key={i}
+                                                    type="text"
+                                                    value={formData.timeOptions[i]}
+                                                    onChange={(e) => updateArrayField('timeOptions', i, e.target.value)}
+                                                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                                                    placeholder={`Option ${i + 1}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handleCreateInvite}
+                                        disabled={!formData.hostName || !formData.dateType || !formData.title}
+                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Create Date Invite
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 );
             };
 
+            const LinkGeneratedView = () => {
+                const copyToClipboard = () => {
+                    navigator.clipboard.writeText(generatedLink);
+                    alert('Link copied to clipboard!');
+                };
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center">
+                        <div className="max-w-2xl mx-auto text-center">
+                            <div className="bg-white rounded-2xl shadow-xl p-8 border border-pink-100">
+                                <div className="mb-6">
+                                    <div className="text-6xl mb-4">✨</div>
+                                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Your Invite is Ready!</h2>
+                                    <p className="text-gray-600">Share this special link with your date</p>
+                                </div>
+
+                                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                                    <div className="flex items-center justify-between">
+                                        <code className="text-pink-600 font-mono text-sm flex-1 mr-4 break-all">{generatedLink}</code>
+                                        <button
+                                            onClick={copyToClipboard}
+                                            className="bg-pink-500 text-white p-2 rounded-lg hover:bg-pink-600 transition-colors flex-shrink-0"
+                                        >
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={() => {
+                                            setIsRecipientView(true);
+                                            setCurrentView('respond');
+                                        }}
+                                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all"
+                                    >
+                                        Preview Response Page
+                                    </button>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setIsRecipientView(false);
+                                            setCurrentView('create');
+                                        }}
+                                        className="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                                    >
+                                        Create Another Invite
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const ResponseView = () => {
+                const [responses, setResponses] = useState({
+                    attire: '',
+                    food: '',
+                    time: '',
+                    willJoin: '',
+                    note: ''
+                });
+
+                const selectedDateType = dateTypes.find(type => type.id === inviteData.dateType);
+
+                const handleResponse = async () => {
+                    setResponseData(responses);
+                    
+                    if (isRecipientView) {
+                        await sendEmailNotification(responses, inviteData);
+                    }
+                    
+                    setCurrentView('confirmation');
+                };
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6">
+                        <div className="max-w-2xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-pink-100">
+                                <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6">
+                                    <div className="text-center">
+                                        <div className="text-4xl mb-2">{selectedDateType?.icon}</div>
+                                        <h1 className="text-2xl font-bold mb-1">{inviteData.title}</h1>
+                                        <p className="text-pink-100">You're invited by {inviteData.hostName}</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    <div className="mb-6">
+                                        <p className="text-gray-700 mb-4">{inviteData.description}</p>
+                                        {inviteData.location && (
+                                            <div className="flex items-center gap-2 text-gray-600">
+                                                <span>📍</span>
+                                                <span>{inviteData.location}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800 mb-4">Will you join me for this date?</h3>
+                                            <div className="grid gap-3">
+                                                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-green-50 transition-colors">
+                                                    <input
+                                                        type="radio"
+                                                        name="willJoin"
+                                                        value="yes"
+                                                        onChange={(e) => setResponses(prev => ({ ...prev, willJoin: e.target.value }))}
+                                                        className="mr-3 text-green-500"
+                                                    />
+                                                    <span className="text-lg font-medium text-green-700">Yes, I'd love to! 💕</span>
+                                                </label>
+                                                <label className="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-red-50 transition-colors">
+                                                    <input
+                                                        type="radio"
+                                                        name="willJoin"
+                                                        value="no"
+                                                        onChange={(e) => setResponses(prev => ({ ...prev, willJoin: e.target.value }))}
+                                                        className="mr-3 text-red-500"
+                                                    />
+                                                    <span className="text-lg font-medium text-red-700">I can't make it this time 😔</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {responses.willJoin === 'yes' && (
+                                            <>
+                                                <div className="border-t pt-6">
+                                                    <h3 className="font-semibold text-gray-800 mb-3">Choose Your Attire</h3>
+                                                    <div className="grid gap-2">
+                                                        {inviteData.attireOptions?.filter(option => option).map((option, index) => (
+                                                            <label key={index} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="attire"
+                                                                    value={option}
+                                                                    onChange={(e) => setResponses(prev => ({ ...prev, attire: e.target.value }))}
+                                                                    className="mr-3 text-pink-500"
+                                                                />
+                                                                <span>{option}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-800 mb-3">Choose Your Food Preference</h3>
+                                                    <div className="grid gap-2">
+                                                        {inviteData.foodOptions?.filter(option => option).map((option, index) => (
+                                                            <label key={index} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="food"
+                                                                    value={option}
+                                                                    onChange={(e) => setResponses(prev => ({ ...prev, food: e.target.value }))}
+                                                                    className="mr-3 text-pink-500"
+                                                                />
+                                                                <span>{option}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-800 mb-3">Choose Your Preferred Time</h3>
+                                                    <div className="grid gap-2">
+                                                        {inviteData.timeOptions?.filter(option => option).map((option, index) => (
+                                                            <label key={index} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors">
+                                                                <input
+                                                                    type="radio"
+                                                                    name="time"
+                                                                    value={option}
+                                                                    onChange={(e) => setResponses(prev => ({ ...prev, time: e.target.value }))}
+                                                                    className="mr-3 text-pink-500"
+                                                                />
+                                                                <span>{option}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className={responses.willJoin ? 'border-t pt-6' : ''}>
+                                            <h3 className="font-semibold text-gray-800 mb-3">Send a Note (Optional)</h3>
+                                            <textarea
+                                                value={responses.note}
+                                                onChange={(e) => setResponses(prev => ({ ...prev, note: e.target.value }))}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent h-24 resize-none"
+                                                placeholder={responses.willJoin === 'no' 
+                                                    ? "Let them know why you can't make it or suggest an alternative..." 
+                                                    : "Add a personal message, suggest changes, or share your excitement..."
+                                                }
+                                            />
+                                        </div>
+
+                                        <button
+                                            onClick={handleResponse}
+                                            disabled={!responses.willJoin || (responses.willJoin === 'yes' && (!responses.attire || !responses.food || !responses.time))}
+                                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Send My Response
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const ConfirmationView = () => {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center">
+                        <div className="max-w-2xl mx-auto text-center">
+                            <div className="bg-white rounded-2xl shadow-xl p-8 border border-pink-100">
+                                <div className="mb-6">
+                                    <div className="text-6xl mb-4">
+                                        {responseData.willJoin === 'yes' ? '🎉' : '💝'}
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                        {responseData.willJoin === 'yes' ? "Perfect! It's a Date!" : "Response Sent!"}
+                                    </h2>
+                                    <p className="text-gray-600">
+                                        {responseData.willJoin === 'yes' 
+                                            ? 'Your preferences have been recorded' 
+                                            : 'Your response has been sent to ' + inviteData.hostName
+                                        }
+                                    </p>
+                                </div>
+
+                                {emailStatus && (
+                                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+                                        {emailStatus}
+                                    </div>
+                                )}
+
+                                <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg p-6 mb-6">
+                                    <h3 className="font-semibold text-gray-800 mb-4">Your Response:</h3>
+                                    <div className="space-y-3 text-left">
+                                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+                                            <span className="text-lg font-medium">
+                                                {responseData.willJoin === 'yes' ? "✨ Yes, I'd love to join you!" : "😔 Can't make it this time"}
+                                            </span>
+                                        </div>
+                                        
+                                        {responseData.willJoin === 'yes' && (
+                                            <>
+                                                <div className="flex items-center gap-3">
+                                                    <span><strong>Attire:</strong> {responseData.attire}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span><strong>Food:</strong> {responseData.food}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span><strong>Time:</strong> {responseData.time}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        
+                                        {responseData.note && (
+                                            <div className="bg-white p-3 rounded-lg">
+                                                <div>
+                                                    <strong>Your Note:</strong>
+                                                    <p className="text-gray-700 mt-1">{responseData.note}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <p className="text-gray-600 mb-6">
+                                    {responseData.willJoin === 'yes' 
+                                        ? `${inviteData.hostName} will receive your preferences and can now finalize the plans for your amazing date!`
+                                        : `Your response has been sent to ${inviteData.hostName}. Maybe you can plan something for another time!`
+                                    }
+                                </p>
+
+                                <div className="space-y-3">
+                                    {!isRecipientView && (
+                                        <button
+                                            onClick={() => setCurrentView('create')}
+                                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all"
+                                        >
+                                            Create Your Own Date Invite
+                                        </button>
+                                    )}
+                                    
+                                    {isRecipientView && (
+                                        <div className="text-center text-gray-500">
+                                            <p>Thank you for responding! {inviteData.hostName} has been notified of your preferences.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Main render logic
+            if (!isAuthenticated) {
+                return <LoginView />;
+            }
+
             return (
                 <>
-                    {view === 'login' && <LoginScreen />}
-                    {view === 'create' && <CreateInviteForm />}
-                    {view === 'link' && <LinkGeneratedView />}
-                    {view === 'animation' && <EnvelopeAnimation />}
+                    {currentView === 'create' && !isRecipientView && <CreateInviteForm />}
+                    {currentView === 'link' && !isRecipientView && <LinkGeneratedView />}
+                    {currentView === 'animation' && isRecipientView && <AnimationView />}
+                    {currentView === 'respond' && <ResponseView />}
+                    {currentView === 'confirmation' && <ConfirmationView />}
                 </>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<DateInviteWebsite />);
     </script>
 </body>
 </html>
