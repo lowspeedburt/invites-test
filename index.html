@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DateNight Invites</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Heart, Clock, Utensils, Shirt, Link, Send, Calendar, MapPin, Star } = lucideReact;
+
+        const DateInviteWebsite = () => {
+          const [currentView, setCurrentView] = useState('create');
+          const [inviteData, setInviteData] = useState({});
+          const [responseData, setResponseData] = useState({});
+          const [generatedLink, setGeneratedLink] = useState('');
+          const [isRecipientView, setIsRecipientView] = useState(false);
+          const [inviteId, setInviteId] = useState('');
+          const [showAnimation, setShowAnimation] = useState(false);
+
+          // Check if user arrived via an invite link
+          useEffect(() => {
+            const hash = window.location.hash;
+            const inviteMatch = hash.match(/#\/invite\/([a-z0-9]+)/);
+            
+            if (inviteMatch) {
+              const id = inviteMatch[1];
+              setInviteId(id);
+              setIsRecipientView(true);
+              
+              // Try to load the actual invite data
+              const storedData = localStorage.getItem(`invite_${id}`);
+              if (storedData) {
+                setInviteData(JSON.parse(storedData));
+              } else {
+                // Fallback sample data if invite not found (for demo)
+                const sampleInviteData = {
+                  hostName: "Alex",
+                  dateType: "romantic", 
+                  title: "A Magical Evening Together",
+                  description: "Join me for a beautiful evening filled with great conversation, delicious food, and wonderful company. I've planned something special that I think you'll love!",
+                  location: "Downtown Rooftop Restaurant",
+                  attireOptions: ["Casual Chic", "Semi-Formal", "Dressy Casual"],
+                  foodOptions: ["Italian Cuisine", "Sushi & Asian", "Classic American"],
+                  timeOptions: ["6:00 PM", "7:30 PM", "8:00 PM"]
+                };
+                setInviteData(sampleInviteData);
+              }
+              
+              // Show animation first, then transition to response
+              setShowAnimation(true);
+              setCurrentView('animation');
+              
+              // After animation completes, show the response page
+              setTimeout(() => {
+                setShowAnimation(false);
+                setCurrentView('respond');
+              }, 4000); // 4 second animation
+            }
+          }, []);
+
+          const dateTypes = [
+            { id: 'romantic', name: 'Romantic Evening', icon: '💕', desc: 'Candlelit dinner and intimate conversation' },
+            { id: 'adventure', name: 'Adventure Date', icon: '🗻', desc: 'Outdoor activities and exploration' },
+            { id: 'casual', name: 'Casual Hangout', icon: '☕', desc: 'Relaxed and comfortable atmosphere' },
+            { id: 'cultural', name: 'Cultural Experience', icon: '🎭', desc: 'Museums, shows, or artistic venues' },
+            { id: 'active', name: 'Active Date', icon: '⚽', desc: 'Sports, fitness, or physical activities' },
+            { id: 'foodie', name: 'Culinary Adventure', icon: '🍷', desc: 'Fine dining or food exploration' }
+          ];
+
+          const AnimationView = () => {
+            const selectedDateType = dateTypes.find(type => type.id === inviteData.dateType);
+
+            return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center relative overflow-hidden" },
+              React.createElement('style', null, `
+                @keyframes envelopeOpen {
+                  0% { transform: rotateX(0deg); }
+                  50% { transform: rotateX(0deg); }
+                  100% { transform: rotateX(-180deg); }
+                }
+                
+                @keyframes cardSlideOut {
+                  0% { 
+                    transform: translateY(0) scale(0.8);
+                    opacity: 0;
+                  }
+                  30% { 
+                    transform: translateY(0) scale(0.8);
+                    opacity: 0;
+                  }
+                  100% { 
+                    transform: translateY(-120px) scale(1);
+                    opacity: 1;
+                  }
+                }
+                
+                @keyframes sparkle {
+                  0%, 100% { opacity: 0; transform: scale(0); }
+                  50% { opacity: 1; transform: scale(1); }
+                }
+                
+                @keyframes float {
+                  0%, 100% { transform: translateY(0px); }
+                  50% { transform: translateY(-10px); }
+                }
+                
+                .envelope-flap {
+                  animation: envelopeOpen 2s ease-in-out 1s forwards;
+                  transform-origin: bottom;
+                }
+                
+                .invite-card {
+                  animation: cardSlideOut 2s ease-out 2s forwards;
+                }
+                
+                .sparkle {
+                  animation: sparkle 1s ease-in-out infinite;
+                }
+                
+                .floating {
+                  animation: float 3s ease-in-out infinite;
+                }
+              `),
+              
+              // Sparkles
+              React.createElement('div', { className: "absolute inset-0 pointer-events-none" },
+                [...Array(8)].map((_, i) =>
+                  React.createElement('div', {
+                    key: i,
+                    className: "absolute sparkle",
+                    style: {
+                      left: `${20 + i * 10}%`,
+                      top: `${30 + (i % 3) * 20}%`,
+                      animationDelay: `${i * 0.5}s`,
+                      fontSize: '24px'
+                    }
+                  }, "✨")
+                )
+              ),
+
+              React.createElement('div', { className: "relative" },
+                // Envelope
+                React.createElement('div', { className: "relative mb-8 floating", style: { animationDelay: '0.5s' } },
+                  // Envelope Body
+                  React.createElement('div', { className: "w-80 h-56 bg-gradient-to-b from-pink-100 to-pink-200 rounded-lg shadow-2xl border border-pink-300 relative" },
+                    // Envelope Flap
+                    React.createElement('div', { 
+                      className: "envelope-flap absolute top-0 left-0 w-full h-full bg-gradient-to-b from-pink-200 to-pink-300 rounded-lg border border-pink-400",
+                      style: { 
+                        clipPath: 'polygon(0 0, 50% 60%, 100% 0)',
+                        transformStyle: 'preserve-3d'
+                      }
+                    }),
+                    
+                    // Heart Seal
+                    React.createElement('div', { className: "absolute top-12 left-1/2 transform -translate-x-1/2 text-4xl z-10" }, "💕")
+                  )
+                ),
+
+                // Invitation Card
+                React.createElement('div', { className: "invite-card absolute top-0 left-1/2 transform -translate-x-1/2 opacity-0" },
+                  React.createElement('div', { className: "w-72 bg-white rounded-2xl shadow-2xl border border-pink-200 overflow-hidden" },
+                    React.createElement('div', { className: "bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 text-center" },
+                      React.createElement('div', { className: "text-3xl mb-2" }, selectedDateType?.icon),
+                      React.createElement('h2', { className: "text-lg font-bold" }, inviteData.title),
+                      React.createElement('p', { className: "text-pink-100 text-sm" }, `From ${inviteData.hostName}`)
+                    ),
+                    
+                    React.createElement('div', { className: "p-4 text-center" },
+                      React.createElement('p', { className: "text-gray-700 text-sm mb-3" }, "You have received a special date invitation!"),
+                      React.createElement('div', { className: "flex items-center justify-center gap-2 text-pink-600 text-sm" },
+                        React.createElement(Heart, { size: 16 }),
+                        React.createElement('span', null, "Tap anywhere to open"),
+                        React.createElement(Heart, { size: 16 })
+                      )
+                    )
+                  )
+                )
+              ),
+
+              // Click overlay to skip animation
+              React.createElement('div', { 
+                className: "absolute inset-0 cursor-pointer z-20",
+                onClick: () => {
+                  setShowAnimation(false);
+                  setCurrentView('respond');
+                }
+              })
+            );
+          };
+
+          const handleCreateInvite = (formData) => {
+            const inviteId = Math.random().toString(36).substr(2, 9);
+            const link = `https://lowspeedburt.github.io/invites-test/#/invite/${inviteId}`;
+            setInviteData(formData);
+            setGeneratedLink(link);
+            setCurrentView('link');
+            
+            // Store the invite data
+            localStorage.setItem(`invite_${inviteId}`, JSON.stringify(formData));
+          };
+
+          const handleResponse = (responses) => {
+            setResponseData(responses);
+            setCurrentView('confirmation');
+          };
+
+          const CreateInviteForm = () => {
+            const [formData, setFormData] = useState({
+              hostName: '',
+              dateType: '',
+              title: '',
+              description: '',
+              location: '',
+              attireOptions: ['', '', ''],
+              foodOptions: ['', '', ''],
+              timeOptions: ['', '', '']
+            });
+
+            const updateFormData = (field, value) => {
+              setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const updateArrayField = (field, index, value) => {
+              const newArray = [...formData[field]];
+              newArray[index] = value;
+              setFormData(prev => ({ ...prev, [field]: newArray }));
+            };
+
+            return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6" },
+              React.createElement('div', { className: "max-w-3xl mx-auto" },
+                React.createElement('div', { className: "text-center mb-8" },
+                  React.createElement('h1', { className: "text-4xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-3" },
+                    React.createElement(Heart, { className: "text-pink-500", size: 40 }),
+                    "DateNight Invites"
+                  ),
+                  React.createElement('p', { className: "text-gray-600 text-lg" }, "Create the perfect date invitation")
+                ),
+
+                React.createElement('div', { className: "bg-white rounded-2xl shadow-xl p-8 border border-pink-100" },
+                  React.createElement('div', { className: "space-y-6" },
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-2" }, "Your Name"),
+                      React.createElement('input', {
+                        type: "text",
+                        value: formData.hostName,
+                        onChange: (e) => updateFormData('hostName', e.target.value),
+                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent",
+                        placeholder: "Enter your name"
+                      })
+                    ),
+
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-3" }, "Date Type"),
+                      React.createElement('div', { className: "grid grid-cols-2 md:grid-cols-3 gap-3" },
+                        dateTypes.map(type =>
+                          React.createElement('div', {
+                            key: type.id,
+                            onClick: () => updateFormData('dateType', type.id),
+                            className: `p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                              formData.dateType === type.id
+                                ? 'border-pink-500 bg-pink-50'
+                                : 'border-gray-200 hover:border-pink-300'
+                            }`
+                          },
+                            React.createElement('div', { className: "text-2xl mb-1" }, type.icon),
+                            React.createElement('div', { className: "font-medium text-sm" }, type.name)
+                          )
+                        )
+                      )
+                    ),
+
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-2" }, "Date Title"),
+                      React.createElement('input', {
+                        type: "text",
+                        value: formData.title,
+                        onChange: (e) => updateFormData('title', e.target.value),
+                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent",
+                        placeholder: "Give your date a special title"
+                      })
+                    ),
+
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-2" }, "Description"),
+                      React.createElement('textarea', {
+                        value: formData.description,
+                        onChange: (e) => updateFormData('description', e.target.value),
+                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent h-24",
+                        placeholder: "Describe what you have planned..."
+                      })
+                    ),
+
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-2" }, "Location"),
+                      React.createElement('input', {
+                        type: "text",
+                        value: formData.location,
+                        onChange: (e) => updateFormData('location', e.target.value),
+                        className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent",
+                        placeholder: "Where will this date take place?"
+                      })
+                    ),
+
+                    React.createElement('div', { className: "grid md:grid-cols-3 gap-6" },
+                      React.createElement('div', null,
+                        React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2" },
+                          React.createElement(Shirt, { size: 16 }),
+                          "Attire Options"
+                        ),
+                        [0, 1, 2].map(i =>
+                          React.createElement('input', {
+                            key: i,
+                            type: "text",
+                            value: formData.attireOptions[i],
+                            onChange: (e) => updateArrayField('attireOptions', i, e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm",
+                            placeholder: `Option ${i + 1}`
+                          })
+                        )
+                      ),
+
+                      React.createElement('div', null,
+                        React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2" },
+                          React.createElement(Utensils, { size: 16 }),
+                          "Food Options"
+                        ),
+                        [0, 1, 2].map(i =>
+                          React.createElement('input', {
+                            key: i,
+                            type: "text",
+                            value: formData.foodOptions[i],
+                            onChange: (e) => updateArrayField('foodOptions', i, e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm",
+                            placeholder: `Option ${i + 1}`
+                          })
+                        )
+                      ),
+
+                      React.createElement('div', null,
+                        React.createElement('label', { className: "block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2" },
+                          React.createElement(Clock, { size: 16 }),
+                          "Time Options"
+                        ),
+                        [0, 1, 2].map(i =>
+                          React.createElement('input', {
+                            key: i,
+                            type: "text",
+                            value: formData.timeOptions[i],
+                            onChange: (e) => updateArrayField('timeOptions', i, e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm",
+                            placeholder: `Option ${i + 1}`
+                          })
+                        )
+                      )
+                    ),
+
+                    React.createElement('button', {
+                      onClick: () => handleCreateInvite(formData),
+                      disabled: !formData.hostName || !formData.dateType || !formData.title,
+                      className: "w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    },
+                      React.createElement(Send, { size: 20 }),
+                      "Create Date Invite"
+                    )
+                  )
+                )
+              )
+            );
+          };
+
+          const LinkGeneratedView = () => {
+            const copyToClipboard = () => {
+              navigator.clipboard.writeText(generatedLink);
+              alert('Link copied to clipboard!');
+            };
+
+            const previewResponse = () => {
+              setIsRecipientView(true);
+              setCurrentView('respond');
+            };
+
+            const backToCreator = () => {
+              setIsRecipientView(false);
+              setCurrentView('create');
+            };
+
+            return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center" },
+              React.createElement('div', { className: "max-w-2xl mx-auto text-center" },
+                React.createElement('div', { className: "bg-white rounded-2xl shadow-xl p-8 border border-pink-100" },
+                  React.createElement('div', { className: "mb-6" },
+                    React.createElement('div', { className: "text-6xl mb-4" }, "✨"),
+                    React.createElement('h2', { className: "text-3xl font-bold text-gray-800 mb-2" }, "Your Invite is Ready!"),
+                    React.createElement('p', { className: "text-gray-600" }, "Share this special link with your date")
+                  ),
+
+                  React.createElement('div', { className: "bg-gray-50 rounded-lg p-4 mb-6" },
+                    React.createElement('div', { className: "flex items-center justify-between" },
+                      React.createElement('code', { className: "text-pink-600 font-mono text-sm flex-1 mr-4 break-all" }, generatedLink),
+                      React.createElement('button', {
+                        onClick: copyToClipboard,
+                        className: "bg-pink-500 text-white p-2 rounded-lg hover:bg-pink-600 transition-colors flex-shrink-0"
+                      },
+                        React.createElement(Link, { size: 16 })
+                      )
+                    )
+                  ),
+
+                  React.createElement('div', { className: "space-y-4" },
+                    React.createElement('button', {
+                      onClick: previewResponse,
+                      className: "w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all"
+                    }, "Preview Response Page"),
+                    
+                    React.createElement('button', {
+                      onClick: backToCreator,
+                      className: "w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                    }, "Create Another Invite")
+                  )
+                )
+              )
+            );
+          };
+
+          const ResponseView = () => {
+            const [responses, setResponses] = useState({
+              attire: '',
+              food: '',
+              time: '',
+              willJoin: '',
+              note: ''
+            });
+
+            const selectedDateType = dateTypes.find(type => type.id === inviteData.dateType);
+
+            return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6" },
+              React.createElement('div', { className: "max-w-2xl mx-auto" },
+                React.createElement('div', { className: "bg-white rounded-2xl shadow-xl overflow-hidden border border-pink-100" },
+                  React.createElement('div', { className: "bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6" },
+                    React.createElement('div', { className: "text-center" },
+                      React.createElement('div', { className: "text-4xl mb-2" }, selectedDateType?.icon),
+                      React.createElement('h1', { className: "text-2xl font-bold mb-1" }, inviteData.title),
+                      React.createElement('p', { className: "text-pink-100" }, `You're invited by ${inviteData.hostName}`)
+                    )
+                  ),
+
+                  React.createElement('div', { className: "p-6" },
+                    React.createElement('div', { className: "mb-6" },
+                      React.createElement('p', { className: "text-gray-700 mb-4" }, inviteData.description),
+                      inviteData.location && React.createElement('div', { className: "flex items-center gap-2 text-gray-600" },
+                        React.createElement(MapPin, { size: 16 }),
+                        React.createElement('span', null, inviteData.location)
+                      )
+                    ),
+
+                    React.createElement('div', { className: "space-y-6" },
+                      React.createElement('div', null,
+                        React.createElement('h3', { className: "font-semibold text-gray-800 mb-4 flex items-center gap-2" },
+                          React.createElement(Heart, { size: 18 }),
+                          "Will you join me for this date?"
+                        ),
+                        React.createElement('div', { className: "grid gap-3" },
+                          React.createElement('label', { className: "flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-green-50 transition-colors" },
+                            React.createElement('input', {
+                              type: "radio",
+                              name: "willJoin",
+                              value: "yes",
+                              onChange: (e) => setResponses(prev => ({ ...prev, willJoin: e.target.value })),
+                              className: "mr-3 text-green-500"
+                            }),
+                            React.createElement('span', { className: "text-lg font-medium text-green-700" }, "Yes, I'd love to! 💕")
+                          ),
+                          React.createElement('label', { className: "flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-red-50 transition-colors" },
+                            React.createElement('input', {
+                              type: "radio",
+                              name: "willJoin",
+                              value: "no",
+                              onChange: (e) => setResponses(prev => ({ ...prev, willJoin: e.target.value })),
+                              className: "mr-3 text-red-500"
+                            }),
+                            React.createElement('span', { className: "text-lg font-medium text-red-700" }, "I can't make it this time 😔")
+                          )
+                        )
+                      ),
+
+                      responses.willJoin === 'yes' && React.createElement(React.Fragment, null,
+                        React.createElement('div', { className: "border-t pt-6" },
+                          React.createElement('h3', { className: "font-semibold text-gray-800 mb-3 flex items-center gap-2" },
+                            React.createElement(Shirt, { size: 18 }),
+                            "Choose Your Attire"
+                          ),
+                          React.createElement('div', { className: "grid gap-2" },
+                            inviteData.attireOptions?.filter(option => option).map((option, index) =>
+                              React.createElement('label', { key: index, className: "flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors" },
+                                React.createElement('input', {
+                                  type: "radio",
+                                  name: "attire",
+                                  value: option,
+                                  onChange: (e) => setResponses(prev => ({ ...prev, attire: e.target.value })),
+                                  className: "mr-3 text-pink-500"
+                                }),
+                                React.createElement('span', null, option)
+                              )
+                            )
+                          )
+                        ),
+
+                        React.createElement('div', null,
+                          React.createElement('h3', { className: "font-semibold text-gray-800 mb-3 flex items-center gap-2" },
+                            React.createElement(Utensils, { size: 18 }),
+                            "Choose Your Food Preference"
+                          ),
+                          React.createElement('div', { className: "grid gap-2" },
+                            inviteData.foodOptions?.filter(option => option).map((option, index) =>
+                              React.createElement('label', { key: index, className: "flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors" },
+                                React.createElement('input', {
+                                  type: "radio",
+                                  name: "food",
+                                  value: option,
+                                  onChange: (e) => setResponses(prev => ({ ...prev, food: e.target.value })),
+                                  className: "mr-3 text-pink-500"
+                                }),
+                                React.createElement('span', null, option)
+                              )
+                            )
+                          )
+                        ),
+
+                        React.createElement('div', null,
+                          React.createElement('h3', { className: "font-semibold text-gray-800 mb-3 flex items-center gap-2" },
+                            React.createElement(Clock, { size: 18 }),
+                            "Choose Your Preferred Time"
+                          ),
+                          React.createElement('div', { className: "grid gap-2" },
+                            inviteData.timeOptions?.filter(option => option).map((option, index) =>
+                              React.createElement('label', { key: index, className: "flex items-center p-3 border rounded-lg cursor-pointer hover:bg-pink-50 transition-colors" },
+                                React.createElement('input', {
+                                  type: "radio",
+                                  name: "time",
+                                  value: option,
+                                  onChange: (e) => setResponses(prev => ({ ...prev, time: e.target.value })),
+                                  className: "mr-3 text-pink-500"
+                                }),
+                                React.createElement('span', null, option)
+                              )
+                            )
+                          )
+                        )
+                      ),
+
+                      React.createElement('div', { className: responses.willJoin ? 'border-t pt-6' : '' },
+                        React.createElement('h3', { className: "font-semibold text-gray-800 mb-3 flex items-center gap-2" },
+                          React.createElement(MapPin, { size: 18 }),
+                          "Send a Note (Optional)"
+                        ),
+                        React.createElement('textarea', {
+                          value: responses.note,
+                          onChange: (e) => setResponses(prev => ({ ...prev, note: e.target.value })),
+                          className: "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent h-24 resize-none",
+                          placeholder: responses.willJoin === 'no' 
+                            ? "Let them know why you can't make it or suggest an alternative..." 
+                            : "Add a personal message, suggest changes, or share your excitement..."
+                        })
+                      ),
+
+                      React.createElement('button', {
+                        onClick: () => handleResponse(responses),
+                        disabled: !responses.willJoin || (responses.willJoin === 'yes' && (!responses.attire || !responses.food || !responses.time)),
+                        className: "w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      },
+                        React.createElement(Heart, { size: 20 }),
+                        "Send My Response"
+                      )
+                    )
+                  )
+                )
+              )
+            );
+          };
+
+          const ConfirmationView = () => {
+            return React.createElement('div', { className: "min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 p-6 flex items-center justify-center" },
+              React.createElement('div', { className: "max-w-2xl mx-auto text-center" },
+                React.createElement('div', { className: "bg-white rounded-2xl shadow-xl p-8 border border-pink-100" },
+                  React.createElement('div', { className: "mb-6" },
+                    React.createElement('div', { className: "text-6xl mb-4" },
+                      responseData.willJoin === 'yes' ? '🎉' : '💝'
+                    ),
+                    React.createElement('h2', { className: "text-3xl font-bold text-gray-800 mb-2" },
+                      responseData.willJoin === 'yes' ? "Perfect! It's a Date!" : "Response Sent!"
+                    ),
+                    React.createElement('p', { className: "text-gray-600" },
+                      responseData.willJoin === 'yes' 
+                        ? 'Your preferences have been recorded' 
+                        : 'Your response has been sent to ' + inviteData.hostName
+                    )
+                  ),
+
+                  React.createElement('div', { className: "bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg p-6 mb-6" },
+                    React.createElement('h3', { className: "font-semibold text-gray-800 mb-4" }, "Your Response:"),
+                    React.createElement('div', { className: "space-y-3 text-left" },
+                      React.createElement('div', { className: "flex items-center gap-3 p-3 bg-white rounded-lg" },
+                        React.createElement(Heart, { className: responseData.willJoin === 'yes' ? 'text-green-500' : 'text-red-500', size: 20 }),
+                        React.createElement('span', { className: "text-lg font-medium" },
+                          responseData.willJoin === 'yes' ? "✨ Yes, I'd love to join you!" : "😔 Can't make it this time"
+                        )
+                      ),
+                      
+                      responseData.willJoin === 'yes' && React.createElement(React.Fragment, null,
+                        React.createElement('div', { className: "flex items-center gap-3" },
+                          React.createElement(Shirt, { className: "text-pink-500", size: 16 }),
+                          React.createElement('span', null, React.createElement('strong', null, "Attire:"), ` ${responseData.attire}`)
+                        ),
+                        React.createElement('div', { className: "flex items-center gap-3" },
+                          React.createElement(Utensils, { className: "text-pink-500", size: 16 }),
+                          React.createElement('span', null, React.createElement('strong', null, "Food:"), ` ${responseData.food}`)
+                        ),
+                        React.createElement('div', { className: "flex items-center gap-3" },
+                          React.createElement(Clock, { className: "text-pink-500", size: 16 }),
+                          React.createElement('span', null, React.createElement('strong', null, "Time:"), ` ${responseData.time}`)
+                        )
+                      ),
+                      
+                      responseData.note && React.createElement('div', { className: "bg-white p-3 rounded-lg" },
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                          React.createElement(MapPin, { className: "text-pink-500 mt-0.5", size: 16 }),
+                          React.createElement('div', null,
+                            React.createElement('strong', null, "Your Note:"),
+                            React.createElement('p', { className: "text-gray-700 mt-1" }, responseData.note)
+                          )
+                        )
+                      )
+                    )
+                  ),
+
+                  React.createElement('p', { className: "text-gray-600 mb-6" },
+                    responseData.willJoin === 'yes' 
+                      ? `${inviteData.hostName} will receive your preferences and can now finalize the plans for your amazing date!`
+                      : `Your response has been sent to ${inviteData.hostName}. Maybe you can plan something for another time!`
+                  ),
+
+                  React.createElement('div', { className: "space-y-3" },
+                    !isRecipientView && React.createElement('button', {
+                      onClick: () => setCurrentView('create'),
+                      className: "w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all"
+                    }, "Create Your Own Date Invite"),
+                    
+                    isRecipientView && React.createElement('div', { className: "text-center text-gray-500" },
+                      React.createElement('p', null, `Thank you for responding! ${inviteData.hostName} has been notified of your preferences.`)
+                    )
+                  )
+                )
+              )
+            );
+          };
+
+          return React.createElement(React.Fragment, null,
+            currentView === 'create' && !isRecipientView && React.createElement(CreateInviteForm),
+            currentView === 'link' && !isRecipientView && React.createElement(LinkGeneratedView),
+            currentView === 'animation' && isRecipientView && React.createElement(AnimationView),
+            currentView === 'respond' && React.createElement(ResponseView),
+            currentView === 'confirmation' && React.createElement(ConfirmationView),
+            isRecipientView && currentView === 'create' && React.createElement(ResponseView)
+          );
+        };
+
+        ReactDOM.render(React.createElement(DateInviteWebsite), document.getElementById('root'));
+    </script>
+</body>
+</html>
