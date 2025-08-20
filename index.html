@@ -32,10 +32,10 @@
           const [isAuthenticated, setIsAuthenticated] = useState(false);
           const [emailStatus, setEmailStatus] = useState('');
 
-          // Change this password to your desired password
+          // CHANGE THIS PASSWORD
           const SITE_PASSWORD = "datenight2025";
 
-          // EmailJS Configuration - Replace with your actual values
+          // EmailJS Configuration - Replace with your values
           const EMAILJS_CONFIG = {
             serviceId: "YOUR_SERVICE_ID",
             templateId: "YOUR_TEMPLATE_ID", 
@@ -44,7 +44,7 @@
 
           // Initialize EmailJS
           useEffect(() => {
-            if (typeof emailjs !== 'undefined') {
+            if (typeof emailjs !== 'undefined' && EMAILJS_CONFIG.publicKey !== "YOUR_PUBLIC_KEY") {
               emailjs.init(EMAILJS_CONFIG.publicKey);
             }
           }, []);
@@ -98,13 +98,17 @@
           ];
 
           const sendEmailNotification = async (responses, inviteData) => {
-            if (typeof emailjs === 'undefined') return false;
+            if (typeof emailjs === 'undefined' || EMAILJS_CONFIG.publicKey === "YOUR_PUBLIC_KEY") {
+              console.log('EmailJS not configured - would send:', responses);
+              setEmailStatus('Email not configured (check console for details)');
+              return false;
+            }
 
             try {
               setEmailStatus('Sending...');
               
               const emailData = {
-                to_email: "YOUR_EMAIL@example.com", // Replace with your email
+                to_email: "YOUR_EMAIL@example.com", // REPLACE WITH YOUR EMAIL
                 invite_title: inviteData.title,
                 host_name: inviteData.hostName,
                 will_join: responses.willJoin === 'yes' ? 'YES - They want to go!' : 'NO - They cannot make it',
@@ -119,6 +123,7 @@
               setEmailStatus('Response sent successfully!');
               return true;
             } catch (error) {
+              console.error('EmailJS Error:', error);
               setEmailStatus('Email send failed, but response recorded');
               return false;
             }
@@ -128,8 +133,7 @@
             const [password, setPassword] = useState('');
             const [showError, setShowError] = useState(false);
 
-            const handleLogin = (e) => {
-              e.preventDefault();
+            const handleLogin = () => {
               if (password === SITE_PASSWORD) {
                 setIsAuthenticated(true);
                 setCurrentView('create');
@@ -137,6 +141,12 @@
               } else {
                 setShowError(true);
                 setPassword('');
+              }
+            };
+
+            const handleKeyPress = (e) => {
+              if (e.key === 'Enter') {
+                handleLogin();
               }
             };
 
@@ -150,13 +160,14 @@
                       <p className="text-gray-600">Enter password to create date invites</p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-6">
+                    <div className="space-y-6">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input
                           type="password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
+                          onKeyPress={handleKeyPress}
                           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                           placeholder="Enter access password"
                           autoFocus
@@ -170,13 +181,13 @@
                       )}
 
                       <button
-                        type="submit"
+                        onClick={handleLogin}
                         className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
                       >
                         <Key size={20} />
                         Access Site
                       </button>
-                    </form>
+                    </div>
 
                     <div className="mt-6 text-center text-sm text-gray-500">
                       Have an invite link? It will work directly without login.
@@ -312,7 +323,7 @@
               setFormData(prev => ({ ...prev, [field]: newArray }));
             };
 
-            const handleCreateInvite = (formData) => {
+            const handleCreateInvite = () => {
               const inviteIdValue = Math.random().toString(36).substr(2, 9);
               const link = `https://lowspeedburt.github.io/invites-test/#/invite/${inviteIdValue}`;
               setInviteData(formData);
@@ -451,7 +462,7 @@
                       </div>
 
                       <button
-                        onClick={() => handleCreateInvite(formData)}
+                        onClick={handleCreateInvite}
                         disabled={!formData.hostName || !formData.dateType || !formData.title}
                         className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
@@ -531,7 +542,7 @@
 
             const selectedDateType = dateTypes.find(type => type.id === inviteData.dateType);
 
-            const handleResponse = async (responses) => {
+            const handleResponse = async () => {
               setResponseData(responses);
               
               if (isRecipientView) {
@@ -678,7 +689,7 @@
                         </div>
 
                         <button
-                          onClick={() => handleResponse(responses)}
+                          onClick={handleResponse}
                           disabled={!responses.willJoin || (responses.willJoin === 'yes' && (!responses.attire || !responses.food || !responses.time))}
                           className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
