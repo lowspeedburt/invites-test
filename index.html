@@ -32,22 +32,42 @@
             // CHANGE THIS PASSWORD
             const SITE_PASSWORD = "datenight2025";
 
+            // Helper functions for encoding/decoding invite data in URL
+            const encodeInviteData = (data) => {
+                try {
+                    const jsonString = JSON.stringify(data);
+                    return btoa(encodeURIComponent(jsonString));
+                } catch (error) {
+                    console.error('Error encoding invite data:', error);
+                    return null;
+                }
+            };
+
+            const decodeInviteData = (encodedData) => {
+                try {
+                    const jsonString = decodeURIComponent(atob(encodedData));
+                    return JSON.parse(jsonString);
+                } catch (error) {
+                    console.error('Error decoding invite data:', error);
+                    return null;
+                }
+            };
+
             // Check URL for invite links
             useEffect(() => {
                 const hash = window.location.hash;
-                const inviteMatch = hash.match(/#\/invite\/([a-z0-9]+)/);
+                const inviteMatch = hash.match(/#\/invite\/([a-zA-Z0-9+/=]+)/);
                 
                 if (inviteMatch) {
-                    const id = inviteMatch[1];
-                    setInviteId(id);
+                    const encodedData = inviteMatch[1];
                     setIsRecipientView(true);
                     setIsAuthenticated(true);
                     
-                    const storedData = localStorage.getItem(`invite_${id}`);
-                    if (storedData) {
-                        setInviteData(JSON.parse(storedData));
+                    const decodedData = decodeInviteData(encodedData);
+                    if (decodedData) {
+                        setInviteData(decodedData);
                     } else {
-                        // Fallback sample data
+                        // Only fall back to sample data if decoding completely fails
                         const sampleInviteData = {
                             hostName: "Alex",
                             dateType: "romantic", 
@@ -310,12 +330,16 @@
                 };
 
                 const handleCreateInvite = () => {
-                    const inviteIdValue = Math.random().toString(36).substr(2, 9);
-                    const link = `https://lowspeedburt.github.io/invites-test/#/invite/${inviteIdValue}`;
+                    const encodedData = encodeInviteData(formData);
+                    if (!encodedData) {
+                        alert('Error creating invite link. Please try again.');
+                        return;
+                    }
+                    
+                    const link = `https://lowspeedburt.github.io/invites-test/#/invite/${encodedData}`;
                     setInviteData(formData);
                     setGeneratedLink(link);
                     setCurrentView('link');
-                    localStorage.setItem(`invite_${inviteIdValue}`, JSON.stringify(formData));
                 };
 
                 return (
@@ -463,6 +487,7 @@
                                     <div className="text-6xl mb-4">✨</div>
                                     <h2 className="text-3xl font-bold text-gray-800 mb-2">Your Invite is Ready!</h2>
                                     <p className="text-gray-600">Share this special link with your date</p>
+                                    <p className="text-sm text-green-600 mt-2">✓ This link contains all the invite data and will work permanently</p>
                                 </div>
 
                                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
